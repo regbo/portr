@@ -15,10 +15,26 @@ builds:
       - arm64
     ldflags:
       - -s -w -X main.version={{.Version}}
+  - id: "portrd"
+    main: ./cmd/portrd
+    binary: "portrd"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
 
 archives:
   - formats:
       - zip
+    ids:
+      - portr
     name_template: >-
       {{ .Binary }}_
       {{- .Version }}_
@@ -28,6 +44,19 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     id: portr
+  - formats:
+      - zip
+    ids:
+      - portrd
+    name_template: >-
+      {{ .Binary }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    id: portrd
 
 checksum:
   name_template: "checksums.txt"
