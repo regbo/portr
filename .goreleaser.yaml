@@ -37,17 +37,4 @@ snapshot:
 
 release:
   name_template: "v{{ .Version }}"
-  draft: true
-
-brews:
-  - name: portr
-    ids:
-      - portr
-    homepage: https://github.com/amalshaji/portr
-    repository:
-      owner: amalshaji
-      name: homebrew-taps
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    commit_author:
-      name: Amal Shaji
-      email: amalshajid@gmail.com
+  draft: false

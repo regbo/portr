@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -154,7 +155,35 @@ func (p *Proxy) handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		connectionLostError(res)
 	}
+	proxy.ModifyResponse = preserveEventStream
 	proxy.ServeHTTP(w, r)
+}
+
+func preserveEventStream(response *http.Response) error {
+	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	if err != nil || !strings.EqualFold(contentType, "text/event-stream") {
+		return nil
+	}
+
+	cacheControl := response.Header.Get("Cache-Control")
+	if !hasDirective(cacheControl, "no-transform") {
+		if cacheControl != "" {
+			cacheControl += ", "
+		}
+		response.Header.Set("Cache-Control", cacheControl+"no-transform")
+	}
+	response.Header.Del("Content-Length")
+	response.ContentLength = -1
+	return nil
+}
+
+func hasDirective(value, directive string) bool {
+	for part := range strings.SplitSeq(value, ",") {
+		if strings.EqualFold(strings.TrimSpace(part), directive) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Proxy) nextBackends(src string, limit int) ([]string, error) {
