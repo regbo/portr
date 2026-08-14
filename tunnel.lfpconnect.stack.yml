@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16.2
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: portr_user
+      POSTGRES_PASSWORD: ${PORTR_DATABASE_PASSWORD?Variable not set}
+      PGDATA: /portr_data/postgres
+    volumes:
+      - portr_data:/portr_data
+    networks:
+      - stack
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  server:
+    image: registry.lfpconnect.io/lfpconnect/portr-server:v1.0.15-sse.2@sha256:4ce0075472ff671cba8ab81b89beb9019bc7eb5e8a42444afd13689bcb931b48
+    command: ["start", "all"]
+    environment:
+      PORTR_DOMAIN: ${DOMAIN:?Variable not set}
+      PORTR_SERVER_URL: https://${DOMAIN}
+      PORTR_SSH_URL: ${DOMAIN}:4444
+      PORTR_DB_URL: postgres://portr_user:portr_pass@postgres:5432/postgres
+      PORTR_AUTO_MIGRATE: "true"
+    networks:
+      - stack
+      - traefik-public
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        traefik.enable: "true"
+        traefik.docker.network: traefik-public
+
+        traefik.http.routers.portr-admin.rule: Host(`${DOMAIN}`)
+        traefik.http.routers.portr-admin.entrypoints: tcps
+        traefik.http.routers.portr-admin.tls: "true"
+        traefik.http.routers.portr-admin.service: portr-admin
+        traefik.http.services.portr-admin.loadbalancer.server.port: "8000"
+
+        traefik.http.routers.portr-tunnel.rule: HostRegexp(`{subdomain:.+}.${DOMAIN}`)
+        traefik.http.routers.portr-tunnel.entrypoints: tcps
+        traefik.http.routers.portr-tunnel.tls: "true"
+        traefik.http.routers.portr-tunnel.service: portr-tunnel
+        traefik.http.services.portr-tunnel.loadbalancer.server.port: "8001"
+
+        traefik.tcp.routers.portr-ssh.rule: "HostSNI(`*`)"
+        traefik.tcp.routers.portr-ssh.entrypoints: tunnel
+        traefik.tcp.routers.portr-ssh.tls: "false"
+        traefik.tcp.routers.portr-ssh.service: portr-ssh
+        traefik.tcp.services.portr-ssh.loadbalancer.server.port: "2222"
+
+volumes:
+  portr_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/gluster/portr
+
+networks:
+  stack:
+    driver: overlay
+  traefik-public:
+    external: true
