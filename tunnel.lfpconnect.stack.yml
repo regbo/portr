@@ -22,7 +22,7 @@ services:
     environment:
       PORTR_DOMAIN: ${DOMAIN:?Variable not set}
       PORTR_SERVER_URL: https://${DOMAIN}
-      PORTR_SSH_URL: ${DOMAIN}:4444
+      PORTR_SSH_URL: ${DOMAIN}:443
       PORTR_DB_URL: postgres://portr_user:portr_pass@postgres:5432/postgres
       PORTR_AUTO_MIGRATE: "true"
     networks:
